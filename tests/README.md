@@ -80,3 +80,11 @@ cpu-wavelet/lifting_schemes
 
 By default the runner skips `coif10` through `coif17`, matching the existing TTNN accuracy harness exclusions for
 numerically unstable high-order coiflets. Pass `--include-excluded` to include them.
+
+Result classes match `wav/usage/test.py` and are based on the worst MSE across approximation/detail outputs:
+
+```text
+green  if max(mse_approx, mse_detail) < 5e-6
+yellow if max(mse_approx, mse_detail) < 1e-2
+red    otherwise
+```
