@@ -52,7 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--schemes-dir",
         type=Path,
-        default=repo_root() / "tt-wavelet" / "ttnn-wavelet" / "lifting_schemes",
+        default=Path(__file__).resolve().parents[1] / "lifting_schemes",
         help="Directory containing lifting scheme JSON files.",
     )
     parser.add_argument(

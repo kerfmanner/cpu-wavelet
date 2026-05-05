@@ -64,5 +64,11 @@ Default output:
 cpu-wavelet/tests/results/accuracy.csv
 ```
 
+By default the runner reads lifting schemes from:
+
+```text
+cpu-wavelet/lifting_schemes
+```
+
 By default the runner skips `coif10` through `coif17`, matching the existing TTNN accuracy harness exclusions for
 numerically unstable high-order coiflets. Pass `--include-excluded` to include them.
