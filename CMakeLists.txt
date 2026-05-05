@@ -15,6 +15,9 @@ target_include_directories(cpu_wavelet PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/includ
 add_executable(cpu_wavelet_cli apps/cpu_dwt.cpp)
 target_link_libraries(cpu_wavelet_cli PRIVATE cpu_wavelet)
 
+add_executable(cpu_wavelet_bench apps/cpu_benchmark.cpp)
+target_link_libraries(cpu_wavelet_bench PRIVATE cpu_wavelet)
+
 option(CPU_WAVELET_USE_OPENMP "Enable OpenMP in the CPU wavelet executor" OFF)
 
 if(CPU_WAVELET_USE_OPENMP)
