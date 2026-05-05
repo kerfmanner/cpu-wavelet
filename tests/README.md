@@ -31,6 +31,14 @@ cmake -S cpu-wavelet -B cpu-wavelet/build
 cmake --build cpu-wavelet/build --target cpu_wavelet_cli
 ```
 
+On Ubuntu, the helper script wraps common optimized/debug builds:
+
+```bash
+cpu-wavelet/scripts/build.sh --release
+cpu-wavelet/scripts/build.sh --debug
+cpu-wavelet/scripts/build.sh --release --openmp -j 8
+```
+
 If CMake is not convenient, direct compile works too:
 
 ```bash
