@@ -74,6 +74,7 @@ def savefig(output_dir: Path, stem: str, fmt: str) -> None:
         import matplotlib.pyplot as plt
 
         plt.savefig(path, format="svg")
+    print(f"Wrote {path}")
 
 
 def main() -> int:

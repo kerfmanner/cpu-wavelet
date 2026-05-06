@@ -168,7 +168,7 @@ cpu-wavelet/tests/results/performance.csv
 Generate plots:
 
 ```bash
-python cpu-wavelet/tools/plot_performance.py
+python cpu-wavelet/tools/plot_performance.py --format svg
 ```
 
 Default plot outputs are SVG:
@@ -238,7 +238,8 @@ Generate SVG plots for this benchmark:
 ```bash
 python cpu-wavelet/tools/plot_performance.py \
   --input cpu-wavelet/tests/results/pywt2d_cpu1d_performance.csv \
-  --output-dir cpu-wavelet/tests/results/pywt2d_cpu1d_plots
+  --output-dir cpu-wavelet/tests/results/pywt2d_cpu1d_plots \
+  --format svg
 ```
 
 Default plot outputs:
