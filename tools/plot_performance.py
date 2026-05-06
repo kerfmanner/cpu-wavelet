@@ -22,6 +22,14 @@ def parse_args() -> argparse.Namespace:
         help="Output plot directory.",
     )
     parser.add_argument("--format", choices=["svg", "png"], default="svg", help="Output plot format.")
+    parser.add_argument("--xscale", choices=["linear", "log"], default="log", help="X-axis scale for all plots.")
+    parser.add_argument("--time-yscale", choices=["linear", "log"], default="log", help="Y-axis scale for total time.")
+    parser.add_argument(
+        "--ratio-yscale",
+        choices=["linear", "log"],
+        default="log",
+        help="Y-axis scale for speedup and efficiency plots.",
+    )
     return parser.parse_args()
 
 
@@ -101,6 +109,8 @@ def main() -> int:
     plt.xlabel("Signal size")
     plt.ylabel("Mean time (ms)")
     plt.title("DWT Mean Runtime")
+    plt.xscale(args.xscale)
+    plt.yscale(args.time_yscale)
     plt.grid(True, alpha=0.3)
     plt.legend()
     plt.tight_layout()
@@ -127,6 +137,8 @@ def main() -> int:
         plt.xlabel("Signal size")
         plt.ylabel("Speedup vs 1 CPU thread")
         plt.title("CPU Speedup")
+        plt.xscale(args.xscale)
+        plt.yscale(args.ratio_yscale)
         plt.grid(True, alpha=0.3)
         if plotted:
             plt.legend()
@@ -151,6 +163,8 @@ def main() -> int:
         plt.xlabel("Signal size")
         plt.ylabel("Efficiency = speedup / threads")
         plt.title("CPU Parallel Efficiency")
+        plt.xscale(args.xscale)
+        plt.yscale(args.ratio_yscale)
         plt.grid(True, alpha=0.3)
         if plotted:
             plt.legend()

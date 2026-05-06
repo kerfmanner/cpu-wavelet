@@ -135,16 +135,16 @@ cpu-wavelet/scripts/build.sh --release --openmp --vec-report -j "$(nproc)" --tar
   -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -march=native -mtune=native"
 ```
 
-Run the benchmark from 100k to 1M samples with 10k step:
+Run the 1D vs 1D benchmark from 1M to 100M samples with 100k step:
 
 ```bash
 python cpu-wavelet/tools/run_performance.py \
   --cpu-bin cpu-wavelet/build/Release-openmp/cpu_wavelet_bench \
   --scheme cpu-wavelet/lifting_schemes/bior1.3.json \
   --kind ramp \
-  --start 100000 \
-  --end 1000000 \
-  --step 10000 \
+  --start 1000000 \
+  --end 100000000 \
+  --step 100000 \
   --threads 1 2 4 8 \
   --parallel-threshold 32768 \
   --scale-threshold 131072 \
@@ -168,7 +168,13 @@ cpu-wavelet/tests/results/performance.csv
 Generate plots:
 
 ```bash
-python cpu-wavelet/tools/plot_performance.py --format svg
+python cpu-wavelet/tools/plot_performance.py \
+  --input cpu-wavelet/tests/results/performance.csv \
+  --output-dir cpu-wavelet/tests/results/performance_plots \
+  --format svg \
+  --xscale log \
+  --time-yscale log \
+  --ratio-yscale log
 ```
 
 Default plot outputs are SVG:
@@ -180,6 +186,10 @@ cpu-wavelet/tests/results/performance_plots/efficiency.svg
 ```
 
 Use `--format png` only if PNG output is explicitly needed.
+
+This range creates 991 signal sizes per tested CPU thread count, plus 991 PyWavelets rows. With `--threads 1 2 4 8`,
+that is 4,955 CSV rows. The 100M-sample CPU signal is about 400 MB for `float` before workspace buffers; PyWavelets 1D
+also allocates coefficient arrays. Make sure the machine has enough RAM.
 
 You can test different executor thread counts without recompilation when the binary is built with `--openmp`:
 
@@ -199,13 +209,13 @@ cpu-wavelet: one 1D signal with N samples
 PyWavelets: one 2D signal with N total elements
 ```
 
-The default 2D shape uses `--rows 100`, so sizes from 100k to 1M with step 10k become:
+The default 2D shape uses `--rows 100`, so sizes from 1M to 100M with step 100k become:
 
 ```text
-100000 -> 100 x 1000
-110000 -> 100 x 1100
-...
 1000000 -> 100 x 10000
+1100000 -> 100 x 11000
+...
+100000000 -> 100 x 1000000
 ```
 
 Run the benchmark:
@@ -216,9 +226,9 @@ python cpu-wavelet/tools/run_pywt2d_vs_cpu1d.py \
   --scheme cpu-wavelet/lifting_schemes/bior1.3.json \
   --wavelet bior1.3 \
   --kind ramp \
-  --start 100000 \
-  --end 1000000 \
-  --step 10000 \
+  --start 1000000 \
+  --end 100000000 \
+  --step 100000 \
   --rows 100 \
   --threads 1 2 4 8 \
   --parallel-threshold 32768 \
@@ -239,7 +249,10 @@ Generate SVG plots for this benchmark:
 python cpu-wavelet/tools/plot_performance.py \
   --input cpu-wavelet/tests/results/pywt2d_cpu1d_performance.csv \
   --output-dir cpu-wavelet/tests/results/pywt2d_cpu1d_plots \
-  --format svg
+  --format svg \
+  --xscale log \
+  --time-yscale log \
+  --ratio-yscale log
 ```
 
 Default plot outputs:
@@ -249,6 +262,10 @@ cpu-wavelet/tests/results/pywt2d_cpu1d_plots/total_time.svg
 cpu-wavelet/tests/results/pywt2d_cpu1d_plots/speedup.svg
 cpu-wavelet/tests/results/pywt2d_cpu1d_plots/efficiency.svg
 ```
+
+For PyWavelets 2D at 100M total elements, memory use can be several GB because the input and four coefficient arrays
+exist during timing. If the run gets killed by the OS, reduce `--end`, use fewer repeats, or test only CPU first with
+`--skip-pywt`.
 
 ## Batch Performance
 
