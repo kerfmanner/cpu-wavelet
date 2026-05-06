@@ -106,13 +106,22 @@ cpu-wavelet/tests/results/accuracy_summary.md
 
 ## Performance Benchmark
 
+Ubuntu dependencies:
+
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake ninja-build python3 python3-pip
+python3 -m pip install numpy PyWavelets matplotlib
+```
+
 For maximum CPU performance on Ubuntu, build an optimized OpenMP binary:
 
 ```bash
-cpu-wavelet/scripts/build.sh --release --openmp -j "$(nproc)" --target cpu_wavelet_bench
+cpu-wavelet/scripts/build.sh --release --openmp --all -j "$(nproc)" \
+  -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -march=native -mtune=native"
 ```
 
-For GCC or Clang-specific tuning, pass extra CMake flags:
+If you only need the single-signal benchmark target:
 
 ```bash
 cpu-wavelet/scripts/build.sh --release --openmp -j "$(nproc)" --target cpu_wavelet_bench \
@@ -162,13 +171,15 @@ Generate plots:
 python cpu-wavelet/tools/plot_performance.py
 ```
 
-Default plot outputs:
+Default plot outputs are SVG:
 
 ```text
-cpu-wavelet/tests/results/performance_plots/total_time.png
-cpu-wavelet/tests/results/performance_plots/speedup.png
-cpu-wavelet/tests/results/performance_plots/efficiency.png
+cpu-wavelet/tests/results/performance_plots/total_time.svg
+cpu-wavelet/tests/results/performance_plots/speedup.svg
+cpu-wavelet/tests/results/performance_plots/efficiency.svg
 ```
+
+Use `--format png` only if PNG output is explicitly needed.
 
 You can test different executor thread counts without recompilation when the binary is built with `--openmp`:
 
@@ -178,6 +189,65 @@ python cpu-wavelet/tools/run_performance.py --threads 1 2 4 8 16
 
 `--parallel-threshold` controls predict/update and split loops. `--scale-threshold` controls scale-only loops, which are
 usually worth parallelizing only at larger sizes.
+
+## CPU 1D vs PyWavelets 2D
+
+This benchmark compares:
+
+```text
+cpu-wavelet: one 1D signal with N samples
+PyWavelets: one 2D signal with N total elements
+```
+
+The default 2D shape uses `--rows 100`, so sizes from 100k to 1M with step 10k become:
+
+```text
+100000 -> 100 x 1000
+110000 -> 100 x 1100
+...
+1000000 -> 100 x 10000
+```
+
+Run the benchmark:
+
+```bash
+python cpu-wavelet/tools/run_pywt2d_vs_cpu1d.py \
+  --cpu-bin cpu-wavelet/build/Release-openmp/cpu_wavelet_bench \
+  --scheme cpu-wavelet/lifting_schemes/bior1.3.json \
+  --wavelet bior1.3 \
+  --kind ramp \
+  --start 100000 \
+  --end 1000000 \
+  --step 10000 \
+  --rows 100 \
+  --threads 1 2 4 8 \
+  --parallel-threshold 32768 \
+  --scale-threshold 131072 \
+  --repeats 5 \
+  --warmups 1
+```
+
+Default output:
+
+```text
+cpu-wavelet/tests/results/pywt2d_cpu1d_performance.csv
+```
+
+Generate SVG plots for this benchmark:
+
+```bash
+python cpu-wavelet/tools/plot_performance.py \
+  --input cpu-wavelet/tests/results/pywt2d_cpu1d_performance.csv \
+  --output-dir cpu-wavelet/tests/results/pywt2d_cpu1d_plots
+```
+
+Default plot outputs:
+
+```text
+cpu-wavelet/tests/results/pywt2d_cpu1d_plots/total_time.svg
+cpu-wavelet/tests/results/pywt2d_cpu1d_plots/speedup.svg
+cpu-wavelet/tests/results/pywt2d_cpu1d_plots/efficiency.svg
+```
 
 ## Batch Performance
 
