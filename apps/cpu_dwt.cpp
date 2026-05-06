@@ -20,7 +20,8 @@ struct Options {
     std::string signal_csv;
     std::string dtype{"float"};
     ttwv::cpu::ExecutionPolicy policy{ttwv::cpu::ExecutionPolicy::kSerial};
-    size_t parallel_threshold{4096};
+    size_t stencil_threshold{ttwv::cpu::kDefaultStencilParallelThreshold};
+    size_t scale_threshold{ttwv::cpu::kDefaultScaleParallelThreshold};
     int threads{0};
 };
 
@@ -29,7 +30,9 @@ struct Options {
               << "\nOptions:\n"
               << "  --dtype float|double          Transform scalar type (default: float).\n"
               << "  --policy serial|openmp        Execution policy (default: serial).\n"
-              << "  --parallel-threshold N        Minimum loop size for parallel execution (default: 4096).\n"
+              << "  --parallel-threshold N        Alias for --stencil-threshold.\n"
+              << "  --stencil-threshold N         Minimum stencil/split loop size for parallel execution.\n"
+              << "  --scale-threshold N           Minimum scale loop size for parallel execution.\n"
               << "  --threads N                   OpenMP thread count, 0 means runtime default.\n"
               << "  -h, --help                    Show this help message.\n";
     std::exit(exit_code);
@@ -87,8 +90,10 @@ struct Options {
             } else {
                 throw std::runtime_error("--policy must be 'serial' or 'openmp'");
             }
-        } else if (arg == "--parallel-threshold") {
-            options.parallel_threshold = parse_size(require_value("--parallel-threshold"), "--parallel-threshold");
+        } else if (arg == "--parallel-threshold" || arg == "--stencil-threshold") {
+            options.stencil_threshold = parse_size(require_value(arg.c_str()), arg.c_str());
+        } else if (arg == "--scale-threshold") {
+            options.scale_threshold = parse_size(require_value("--scale-threshold"), "--scale-threshold");
         } else if (arg == "--threads") {
             options.threads = parse_int(require_value("--threads"), "--threads");
         } else {
@@ -146,7 +151,11 @@ template <class T>
 void run_transform(const Options& options) {
     const auto scheme = ttwv::cpu::load_lifting_scheme_json(options.scheme_path);
     const std::vector<T> signal = parse_signal_csv<T>(options.signal_csv);
-    const ttwv::cpu::Executor executor(options.policy, options.parallel_threshold, options.threads);
+    const ttwv::cpu::Executor executor(
+        options.policy,
+        options.stencil_threshold,
+        options.threads,
+        options.scale_threshold);
     const auto result =
         ttwv::cpu::dwt_forward_one_level<T>(std::span<const T>(signal.data(), signal.size()), scheme, executor);
 

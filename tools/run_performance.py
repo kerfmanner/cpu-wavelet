@@ -63,7 +63,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--warmups", type=int, default=1, help="Untimed warmups.")
     parser.add_argument("--dtype", choices=["float", "double"], default="float", help="CPU dtype.")
     parser.add_argument("--threads", type=int, nargs="+", default=[1, 2, 4, 8], help="CPU thread counts to test.")
-    parser.add_argument("--parallel-threshold", type=int, default=4096, help="CPU executor threshold.")
+    parser.add_argument("--parallel-threshold", type=int, default=32768, help="CPU stencil/split executor threshold.")
+    parser.add_argument("--scale-threshold", type=int, default=131072, help="CPU scale executor threshold.")
     parser.add_argument("--skip-pywt", action="store_true", help="Do not run PyWavelets timings.")
     parser.add_argument("--append", action="store_true", help="Append to output CSV instead of replacing it.")
     return parser.parse_args()
@@ -139,6 +140,8 @@ def run_cpu(args: argparse.Namespace, threads: int) -> list[dict[str, str]]:
             str(threads),
             "--parallel-threshold",
             str(args.parallel_threshold),
+            "--scale-threshold",
+            str(args.scale_threshold),
         ],
         check=False,
         capture_output=True,
@@ -185,6 +188,7 @@ def time_pywt(args: argparse.Namespace) -> list[dict[str, str]]:
                 "policy": "native",
                 "threads": "0",
                 "parallel_threshold": "",
+                "scale_threshold": "",
                 "repeats": str(args.repeats),
                 "warmups": str(args.warmups),
                 "mean_ms": f"{sum(times_ms) / len(times_ms):.10g}",
@@ -218,6 +222,7 @@ def main() -> int:
         "policy",
         "threads",
         "parallel_threshold",
+        "scale_threshold",
         "repeats",
         "warmups",
         "mean_ms",

@@ -37,6 +37,7 @@ On Ubuntu, the helper script wraps common optimized/debug builds:
 cpu-wavelet/scripts/build.sh --release
 cpu-wavelet/scripts/build.sh --debug
 cpu-wavelet/scripts/build.sh --release --openmp -j 8
+cpu-wavelet/scripts/build.sh --release --openmp -j 8 --target cpu_wavelet_batch_bench
 ```
 
 If CMake is not convenient, direct compile works too:
@@ -118,6 +119,13 @@ cpu-wavelet/scripts/build.sh --release --openmp -j "$(nproc)" --target cpu_wavel
   -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -march=native -mtune=native"
 ```
 
+To inspect SIMD/vectorization decisions with GCC, add vectorization diagnostics:
+
+```bash
+cpu-wavelet/scripts/build.sh --release --openmp --vec-report -j "$(nproc)" --target cpu_wavelet_bench \
+  -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -march=native -mtune=native"
+```
+
 Run the benchmark from 100k to 1M samples with 10k step:
 
 ```bash
@@ -129,12 +137,18 @@ python cpu-wavelet/tools/run_performance.py \
   --end 1000000 \
   --step 10000 \
   --threads 1 2 4 8 \
+  --parallel-threshold 32768 \
+  --scale-threshold 131072 \
   --repeats 5 \
   --warmups 1
 ```
 
 The benchmark binary generates the signal in memory before timing. The timed section measures only the transform call,
 not signal reading, CSV parsing, or scheme loading.
+
+When OpenMP is enabled and the signal reaches the stencil threshold, single-signal execution uses one persistent OpenMP
+team across the lifting chain with barriers between dependent steps. This removes the fork/join overhead that would
+otherwise happen at every lifting step.
 
 Default output:
 
@@ -161,3 +175,59 @@ You can test different executor thread counts without recompilation when the bin
 ```bash
 python cpu-wavelet/tools/run_performance.py --threads 1 2 4 8 16
 ```
+
+`--parallel-threshold` controls predict/update and split loops. `--scale-threshold` controls scale-only loops, which are
+usually worth parallelizing only at larger sizes.
+
+## Batch Performance
+
+For many short independent signals/channels, benchmark outer batch parallelism with serial per-signal transforms:
+
+```bash
+cpu-wavelet/scripts/build.sh --release --openmp -j "$(nproc)" --target cpu_wavelet_batch_bench \
+  -DCMAKE_CXX_FLAGS_RELEASE="-O3 -DNDEBUG -march=native -mtune=native"
+
+python cpu-wavelet/tools/run_batch_performance.py \
+  --batch-bin cpu-wavelet/build/Release-openmp/cpu_wavelet_batch_bench \
+  --scheme cpu-wavelet/lifting_schemes/bior1.3.json \
+  --kind ramp \
+  --start 1024 \
+  --end 65536 \
+  --step 1024 \
+  --batch-sizes 8 16 32 64 \
+  --threads 1 2 4 8 \
+  --inner-policy serial \
+  --repeats 5 \
+  --warmups 1
+```
+
+Default output:
+
+```text
+cpu-wavelet/tests/results/batch_performance.csv
+```
+
+## Threshold Sweep
+
+Do not guess the best stencil/scale thresholds. Sweep them by size, wavelet, dtype, and thread count:
+
+```bash
+python cpu-wavelet/tools/sweep_thresholds.py \
+  --cpu-bin cpu-wavelet/build/Release-openmp/cpu_wavelet_bench \
+  --schemes cpu-wavelet/lifting_schemes/bior1.3.json cpu-wavelet/lifting_schemes/db4.json \
+  --kinds ramp normal \
+  --sizes 100000 250000 500000 1000000 \
+  --dtypes float double \
+  --threads 1 2 4 8 \
+  --stencil-thresholds 8192 32768 131072 524288 \
+  --scale-thresholds 32768 131072 524288 1000000000
+```
+
+Default output:
+
+```text
+cpu-wavelet/tests/results/threshold_sweep.csv
+```
+
+Persistent OpenMP regions are implemented for the single-signal OpenMP path. Wavefront/diamond tiling is still a
+separate future optimization for exposing inter-step parallelism within one long signal.

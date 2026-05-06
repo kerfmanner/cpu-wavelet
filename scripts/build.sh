@@ -9,6 +9,7 @@ build_dir=""
 target="cpu_wavelet_cli"
 generator="Ninja"
 use_openmp="OFF"
+vec_report="OFF"
 clean="OFF"
 configure_only="OFF"
 parallel_jobs=""
@@ -25,6 +26,7 @@ Options:
   --minsizerel             Build MinSizeRel.
   --openmp                 Enable OpenMP executor support.
   --no-openmp              Disable OpenMP executor support (default).
+  --vec-report             Enable compiler vectorization diagnostics.
   --target NAME            CMake target to build (default: cpu_wavelet_cli).
   --all                    Build all default targets.
   --build-dir DIR          Override build directory.
@@ -39,6 +41,7 @@ Examples:
   cpu-wavelet/scripts/build.sh --release
   cpu-wavelet/scripts/build.sh --debug --target cpu_wavelet_cli
   cpu-wavelet/scripts/build.sh --release --openmp -j 8
+  cpu-wavelet/scripts/build.sh --release --openmp --vec-report --target cpu_wavelet_bench
   cpu-wavelet/scripts/build.sh --relwithdebinfo -DCMAKE_CXX_COMPILER=clang++
 EOF
 }
@@ -62,6 +65,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-openmp)
       use_openmp="OFF"
+      ;;
+    --vec-report)
+      vec_report="ON"
       ;;
     --target)
       shift
@@ -125,6 +131,7 @@ cmake_args=(
   -G "${generator}"
   -DCMAKE_BUILD_TYPE="${build_type}"
   -DCPU_WAVELET_USE_OPENMP="${use_openmp}"
+  -DCPU_WAVELET_VECTORIZE_REPORT="${vec_report}"
 )
 
 cmake_args+=("${extra_cmake_args[@]}")
@@ -134,6 +141,7 @@ echo "    build_type=${build_type}"
 echo "    build_dir=${build_dir}"
 echo "    generator=${generator}"
 echo "    openmp=${use_openmp}"
+echo "    vec_report=${vec_report}"
 cmake "${cmake_args[@]}"
 
 if [[ "${configure_only}" == "ON" ]]; then
@@ -156,4 +164,6 @@ cat <<EOF
 Binary location is generator-dependent. Common paths:
   ${build_dir}/cpu_wavelet_cli
   ${build_dir}/apps/cpu_wavelet_cli
+  ${build_dir}/cpu_wavelet_bench
+  ${build_dir}/cpu_wavelet_batch_bench
 EOF
